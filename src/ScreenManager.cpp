@@ -1,5 +1,12 @@
 #include "ScreenManager.h"
 #include "Bitmaps.h"
+#include <DFRobotDFPlayerMini.h>
+
+// Define a hardware serial interface for DFPlayer
+DFRobotDFPlayerMini myDFPlayer;
+
+const int pinMp3Tx = 16;
+const int pinMp3Rx = 17;
 
 #define UP_BUTTON 32
 #define BACK_BUTTON 33
@@ -11,6 +18,14 @@ extern const unsigned char epd_bitmap_itc_logo[];
 
 void ScreenManager::initialize()
 {
+    Serial.begin(115200); // Use this for debugging
+    // Serial.println(myDFPlayer.readFileCounts());
+    Serial2.begin(9600, SERIAL_8N1, pinMp3Rx, pinMp3Tx);
+    if (myDFPlayer.begin(Serial2))
+    {
+        Serial.println("DFPlayer Mini connected!");
+        myDFPlayer.volume(20); // Set the volume (0-30)
+    }
     // Create and store screens
     StaticScreen *logoScreen = new StaticScreen(nullptr, nullptr, nullptr, 0);
 
@@ -157,9 +172,13 @@ void ScreenManager::handleInput()
     if (digitalRead(SELECT_BUTTON) == HIGH)
     {
         if (currentScreen->getType() == STATIC_SCREEN){
-            Screen *nextScreen = currentScreen-> getNextScreen();
+            StaticScreen *nextScreen = dynamic_cast<StaticScreen*>(currentScreen)->getNextScreen();
             if(nextScreen != nullptr){
+                int mp3Index = nextScreen-> getMp3Index();
+                if (mp3Index != 0) {
+                myDFPlayer.play();
                 switchToScreen(nextScreen);
+            }
             }
         }
         delay(200); // Debounce delay
